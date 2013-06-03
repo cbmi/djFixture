@@ -25,7 +25,6 @@ def inspect(file,reader, jsonModels,fout):
 		pk_num = 0;
 		form = json.loads(form);
                 form_name = form['form name'];
-		print form_name;
 		file.seek(0);
 		reader.next();
 		#determining if the form has radio_other field
@@ -41,12 +40,11 @@ def inspect(file,reader, jsonModels,fout):
 			keys = line.keys();
 			fixtureDict = {};
 			foreignDict = {};
-			if form_name.find('~') != -1:
-				fk_names = form_name.split('~');
-				fixtureDict[fk_names[1].lower()] = pk_num;
-				form_name = fk_names[0];
+			if form['form name'].find('~') != -1:
+                                fk_names = form['form name'].split('~');
+                                fixtureDict[fk_names[1].lower()] = pk_num;
+                                form_name = fk_names[0];
 			if choices_names:
-				#print numChoice;
 				for i in range(numChoice):
 					pk_num_list.append(i+1);
 					for field in form['fields']:
@@ -72,12 +70,11 @@ def inspect(file,reader, jsonModels,fout):
 						choices_field_names = readChoices(field,keys,nested_field);
 						for name in choices_field_names:
 							if name in keys:
-								fixtureDict[field['field name']] = line[name];
+								fixtureDict[field['field name']] = cast_field(line,field_type,name);
 					elif field['field name'].lower() in keys:
 						fixtureDict[field['field name']] = cast_field(line,field_type,								field['field name'].lower());
 			
 				fixtures.append([form_name, fixtureDict]);
-	#print pk_num_list;
 	printFixtures(fixtures,pk_num_list,fout);
 
 def readChoices(field,keys,nested_field):
@@ -102,8 +99,6 @@ def readChoices(field,keys,nested_field):
 def has_field_type(form, field_type):
 	for field in form['fields']:
 		if field['field type'] == field_type:
-			print form;
-			print field['field name'];
 			return field;
 	return '';
 	
@@ -127,8 +122,6 @@ def readHeader(file=None,jsonFile=None):
 def printFixtures(fixturesList,pkList,fout):
 	allJson = [];
 	firstFix = True;
-	print len(pkList);
-	print len(fixturesList);
 	for i in range(len(fixturesList)):
 		fieldDict = {};
 		for field in fixturesList[i][1]:
@@ -138,11 +131,10 @@ def printFixtures(fixturesList,pkList,fout):
 		onlyFK = False;
 		if len(fieldDict.keys()) == 1 and 'foreignkey' in fieldDict:
 			onlyFK = True;
-		if fieldDict and onlyFK is False:
-			allJson.append(	{'model': 'mysite.' + fixturesList[i][0] + '',
-				'pk': pkList[i],
-				'fields': fieldDict
-				});
+		allJson.append(	{'model': 'mysite.' + fixturesList[i][0] + '',
+			'pk': pkList[i],
+			'fields': fieldDict
+			});
 	fout.write(json.dumps(allJson,indent=4,separators=(',',': ')));
 
 def get_field_type(line):
