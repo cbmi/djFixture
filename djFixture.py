@@ -53,7 +53,12 @@ def inspect(file,reader, jsonModels,fout):
 							choices_field_names = readChoices(field,keys,choices_names[i]);
 							for name in choices_field_names:
 								if name in keys:
-									fixtureDict[field['field name']] = line[name];
+									if line[name] == '1':
+										fixtureDict[field['field name']] = name[-1];
+						#elif field['field name'].find('$'):
+						#	index = field['field name'].find('$');
+						#	base_field = field['field name'][:index];
+						#	
 						elif field['field name'].lower() in keys:
 							fixtureDict[field['field name']] = cast_field(line,										field_type,field['field name'].lower());
 					fixtures.append([form_name,fixtureDict]);
@@ -70,7 +75,8 @@ def inspect(file,reader, jsonModels,fout):
 						choices_field_names = readChoices(field,keys,nested_field);
 						for name in choices_field_names:
 							if name in keys:
-								fixtureDict[field['field name']] = cast_field(line,field_type,name);
+								if line[name] == '1':
+									fixtureDict[field['field name']] = 												name[-1];
 					elif field['field name'].lower() in keys:
 						fixtureDict[field['field name']] = cast_field(line,field_type,								field['field name'].lower());
 			
@@ -78,6 +84,15 @@ def inspect(file,reader, jsonModels,fout):
 	printFixtures(fixtures,pk_num_list,fout);
 
 def readChoices(field,keys,nested_field):
+	"""
+	Checkboxes and radio_other fields have multiple parts in the data csv, usually something like
+	name1 name2 name3 for each checkbox/radio button that is pushable, but the info must be put
+	into one field.
+
+	This method finds the fields in the data file that are related to the field parameter. If it
+	is a checkbox, it splits the possible choices and uses that to find the fields.
+	If it is a radio_other field type, splits choices and uses that info to find the field.
+	"""
 	choices_field_names = [];
 	if field['field type'] == 'checkbox':
 		choices = field['choices'].split('|');
@@ -97,6 +112,7 @@ def readChoices(field,keys,nested_field):
 	return choices_field_names;	
 
 def has_field_type(form, field_type):
+	#determines if a form has a field with field_type
 	for field in form['fields']:
 		if field['field type'] == field_type:
 			return field;
@@ -167,13 +183,16 @@ def get_field_type(line):
         return field_type;
 
 def cast_field(line,field_type,name):
+	"""
+	Casts line[name] depending on the field_type
+	"""
 	if field_type == 'CharField' or field_type == 'TextField' or field_type == 'BooleanField':
 		return str(line[name]);
 	elif field_type == 'IntegerField':
 		if line[name]:
 			return int(line[name]);
-		else:
-			return 0;
+		#else:
+			#return 0;
 	elif field_type == 'FloatField':
 		return line[name];
 	else:
