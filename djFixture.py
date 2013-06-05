@@ -1,6 +1,7 @@
 import sys
 import csv
 import json
+import re
 
 field_types = {
         'date_ymd': 'DateField',
@@ -21,44 +22,43 @@ def inspect(file,reader, jsonModels,fout):
 	form_name = '';
 	pk_num_list = [];
 	fixtures = [];
+	form_dict = {};
 	for form in open(jsonModels,'r'):
 		pk_num = 0;
 		form = json.loads(form);
                 form_name = form['form name'];
 		file.seek(0);
 		reader.next();
-		#determining if the form has radio_other field
-		radioField = has_field_type(form, 'radio_other');
-		choices_names = '';
-		if radioField != '' and form_name.find('~') != -1:
-			choices_names = readChoices(radioField,keys,'');
-			numChoice = len(choices_names);
+		numRepeats = '';
+		if form_name.find('~') != -1:
+			form_name,fk_name = form['form name'].split('~');
+			numRepeats = form_name.split(' ')[1];
+			form_dict[form_name] = fk_name;
+		else:
+			print form_dict;
+			form_dict = {};
 		for line in reader:
 			pk_num += 1;
-			fk_list = [];
-			nested_field = '';
 			keys = line.keys();
 			fixtureDict = {};
-			foreignDict = {};
 			if form['form name'].find('~') != -1:
-                                fk_names = form['form name'].split('~');
-                                fixtureDict[fk_names[1].lower()] = pk_num;
-                                form_name = fk_names[0];
-			if choices_names:
-				for i in range(numChoice):
+                                fixtureDict[fk_name.lower()] = pk_num;
+			if numRepeats:
+				if numRepeats.isdigit() is False:
+					#Then the number of repeats depends on a field
+					numRepeats = line[numRepeats.replace('[','').replace(']','')];
+					if not numRepeats:
+						numRepeats = 0;
+				for i in range(int(numRepeats)):
 					pk_num_list.append(i+1);
 					for field in form['fields']:
 						field_type = get_field_type(field);
 						if field['choices']:
-							choices_field_names = readChoices(field,keys,choices_names[i]);
-							for name in choices_field_names:
+							field_names = get_field_names(field,keys,form_dict);
+							for name in field_names:
 								if name in keys:
 									if line[name] == '1':
 										fixtureDict[field['field name']] = name[-1];
-						#elif field['field name'].find('$'):
-						#	index = field['field name'].find('$');
-						#	base_field = field['field name'][:index];
-						#	
 						elif field['field name'].lower() in keys:
 							fixtureDict[field['field name']] = cast_field(line,										field_type,field['field name'].lower());
 					fixtures.append([form_name,fixtureDict]);
@@ -72,8 +72,8 @@ def inspect(file,reader, jsonModels,fout):
 					value for each of those fields that includes the choices
 					"""
 					if field['choices']:
-						choices_field_names = readChoices(field,keys,nested_field);
-						for name in choices_field_names:
+						field_names = get_field_names(field,keys,form_dict);
+						for name in field_names:
 							if name in keys:
 								if line[name] == '1':
 									fixtureDict[field['field name']] = 												name[-1];
@@ -83,7 +83,7 @@ def inspect(file,reader, jsonModels,fout):
 				fixtures.append([form_name, fixtureDict]);
 	printFixtures(fixtures,pk_num_list,fout);
 
-def readChoices(field,keys,nested_field):
+def get_field_names(field,keys,form_dict):
 	"""
 	Checkboxes and radio_other fields have multiple parts in the data csv, usually something like
 	name1 name2 name3 for each checkbox/radio button that is pushable, but the info must be put
@@ -94,9 +94,14 @@ def readChoices(field,keys,nested_field):
 	If it is a radio_other field type, splits choices and uses that info to find the field.
 	"""
 	choices_field_names = [];
+	
+	if 
+	
+	
+
 	if field['field type'] == 'checkbox':
 		choices = field['choices'].split('|');
-		if nested_field:
+		if form_dict:
 			for choice in choices:
 				choices_field_names.append(field['field name'].lower() + choice.split(',')[0].strip(' ') + '___' + choice.split(',')[0].strip(' '));
 		else:
