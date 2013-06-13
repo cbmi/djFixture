@@ -55,12 +55,12 @@ def inspect(file,reader, jsonModels,fout):
 					might pop up in find_related_forms if it is not changed to a
 					number.
 					"""
-					numRepeats = line[numRepeats.replace('[','').replace(']','')];
-					if not numRepeats:
-						numRepeats = 0;
+					new_num_repeats = line[numRepeats.replace('[','').replace(']','')];
+					if not new_num_repeats:
+						new_num_repeats = 0;
 					#form_name is formatted like formName 5~otherForm 5 before
 					#this change
-					new_form_name = form_name.split('~')[0].split(' ')[0] + 											' ' + str(numRepeats);
+					new_form_name = form_name.split('~')[0].split(' ')[0] + 											' ' + str(new_num_repeats);
 					form_dict[new_form_name] = fk_name;
 				if new_form_name:	
 					foreign_forms_list=find_related_forms(new_form_name,form_dict);
@@ -86,19 +86,23 @@ def inspect(file,reader, jsonModels,fout):
 						answered = '';
 						for name in field_names:
 							if name in keys:
-								if line[name] == '1':
-									checked_line = name[-1];
-									answered = True;
-								elif line[name] == '0':
-									answered = True;
+								if len(field_names) > 1:
+									if line[name] == '1':
+										checked_line = name[-1];
+										answered = True;
+									elif line[name] == '0':
+										answered = True;
+								else:	
+									if line[name]:
+										checked_line = line[name];
 						if checked_line:
-							fixtureDict[field['field name']]=checked_line
+							fixtureDict[field['field name']]=[field,checked_line];
 						elif answered is True:
-							fixtureDict[field['field name']] = '0';
+							fixtureDict[field['field name']]=[field,'0'];
 						else:
-							fixtureDict[field['field name']] = '';
+							fixtureDict[field['field name']]=[field,''];
 					elif field['field name'].lower() in keys:
-						fixtureDict[field['field name']] = cast_field(line,field_type,								field['field name'].lower());
+						fixtureDict[field['field name']] = [field,line[field['field name']]];
 				fixtures.append([form_name, fixtureDict]);
 	printFixtures(fixtures,pk_num_list,fout);
 
@@ -108,45 +112,49 @@ def generate_repeating_fixtures(line,form,form_list,fixtures,fixtureDict,keys,pk
 	Getting the number of repeats from last value in list because that is the 
  	least nested form
 	"""
-	#print full_form_list;
 	repeats = int(form_list[-1].split(' ')[1]);
 	for i in range(repeats):
 		#repeats_num_list keeps track of the number of iterations the recursion has gone through in each element
-		primary_key_counter += 1;
 		repeats_num_list.append(i+1);
 		if len(form_list[:-1]) > 0:
 			primary_key_counter = generate_repeating_fixtures(line,form,form_list[:-1],fixtures,fixtureDict,keys,pk_num_list,pk_num,primary_key_counter,repeats_num_list,full_form_list);
 		else:
+			primary_key_counter += 1;
 			fixtureDict = {};
 			fk_index = full_form_list.index(form_list[0]) - 1;
+			foreign_key = full_form_list[fk_index].lower().split(' ')[0];
 			if fk_index == 0:
-				fixtureDict[full_form_list[fk_index]] = pk_num;
-			else:
-				fixtureDict[full_form_list[fk_index]] = int(math.floor(primary_key_counter/repeats));
+				fixtureDict[foreign_key] = ['',pk_num];
+			else:	
+				fixtureDict[foreign_key] = ['',int(math.ceil(primary_key_counter/float(repeats)))];
 			pk_num_list.append(primary_key_counter);
 			for field in form['fields']:
+				clean_field_name = re.sub('\${d\}','',field['field name']);
 				#removed first element(base form) from full_form_list for naming
 				field_name = get_field_name(field,full_form_list[1:],repeats_num_list);
 				if field['choices']:
 					field_names = get_field_names(field,full_form_list[1:],field_name);
 					checked_line = '';
 					answered = '';
-					print field_names;
 					for name in field_names:
 						if name in keys:
-							if line[name] == '1':
-								checked_line = name[-1];
-								answered = True;
-							elif line[name] == '0':
-								answered = True;
+							if len(field_names) > 1:
+								if line[name] == '1':
+									checked_line = name[-1];
+									answered = True;
+								elif line[name] == '0':
+									answered = True;
+							else:
+								if line[name]:
+									checked_line = line[name];
 					if checked_line:			
-						fixtureDict[field['field name']]=checked_line;
+						fixtureDict[clean_field_name]=[field,checked_line];
 					elif answered is True:
-						fixtureDict[field['field name']] = '0';
+						fixtureDict[clean_field_name]=[field,'0'];
 					else:
-						fixtureDict[field['field name']] = '';
+						fixtureDict[clean_field_name]=[field,''];
 				elif field_name.lower() in keys:
-					fixtureDict[field_name] = cast_field(line,field_type,field_name.lower());
+					fixtureDict[field_name] = [field,line[field_name]];
 			clean_form_name = form['form name'].split(' ')[0].replace('$','');
 			fixtures.append([clean_form_name, fixtureDict]);
 		repeats_num_list.pop();
@@ -226,32 +234,39 @@ def readHeader(file=None,jsonFile=None):
 	inspect(fin,reader,jsonFile,fout);
 
 def printFixtures(fixturesList,pkList,fout):
+	"""
+	fixturesList is a list of lists. Each element is a list of [form name,fixtureDict]
+	Each element in fixtureDict is [field, field_val]
+	"""
 	allJson = [];
 	firstFix = True;
 	for i in range(len(fixturesList)):
 		fieldDict = {};
-		for field in fixturesList[i][1]:
-			if fixturesList[i][1][field]:
-				fieldDict[field] = fixturesList[i][1][field];
-		#check if foreign key isnt only key in dict
-		onlyFK = False;
-		if len(fieldDict.keys()) == 1 and 'foreignkey' in fieldDict:
-			onlyFK = True;
+		#if field has a value, print it
+		for key in fixturesList[i][1]:
+			if fixturesList[i][1][key]:
+				field = fixturesList[i][1][key][0];
+				field_val = fixturesList[i][1][key][1];
+				if field:
+					fieldDict[key] = cast_field(field,field_val);
+				else:
+					#if it is just a foreign key
+					fieldDict[key] = field_val;
 		allJson.append(	{'model': 'mysite.' + fixturesList[i][0] + '',
 			'pk': pkList[i],
 			'fields': fieldDict
 			});
 	fout.write(json.dumps(allJson,indent=4,separators=(',',': ')));
 
-def get_field_type(line):
+def get_field_type(field):
 	"""
         Given the database connection, the table name, and the cursor row description,
         this routine will return the given field type name, as well as any additional keyword
         parameters and notes for the field.
         """
-        required = line['required'];
-        validation_type = line['validation type'];
-        field_type = line['field type'];
+        required = field['required'];
+        validation_type = field['validation type'];
+        field_type = field['field type'];
 
         try:
                 field_type = field_types.get(validation_type, field_types[field_type]);
@@ -262,27 +277,50 @@ def get_field_type(line):
                         field_type = 'NullBooleanField';
 
         choices = None;
-        if line['choices']:
+        if field['choices']:
                 try:
                         choices = [(int(v.strip()), k.strip()) for v, k in [choice.split(',') \
-                                for choice in line['choices'].split('|')]]
+                                for choice in field['choices'].split('|')]]
                         field_type = 'IntegerField'
                 except (ValueError, TypeError):
                         pass
 
         return field_type;
 
-def cast_field(line,field_type,name):
+def cast_field(field,field_val):
 	"""
 	Casts line[name] depending on the field_type
 	"""
-	if field_type == 'CharField' or field_type == 'TextField' or field_type == 'BooleanField':
-		return str(line[name]);
+	field_type = get_field_type(field);
+	if field_type == 'CharField' or field_type == 'TextField':
+		return str(field_val);
 	elif field_type == 'IntegerField':
-		if line[name]:
-			return int(line[name]);
+		if field_val and field_val.isdigit():
+			return int(field_val);
+	elif field_type == 'FloatField':
+		try:
+			return float(field_val);
+		except:
+			pass;
+	elif field_type == 'NullBooleanField':
+		if field_val == '':
+			return None;
+		elif field_val == '0':
+			return False;
+		elif field_val == '1':
+			return True;
+		else:
+			return field_val;
+	elif field_type == 'BooleanField':
+		if field_val:
+			if field_val == '1':
+				return True;
+			elif field_val == '0':
+				return False;
+			else:
+				return field_val;
 	else:
-		return line[name];
+		return field_val;
 if len(sys.argv) == 3:
 	readHeader(sys.argv[1],sys.argv[2]);
 else:
