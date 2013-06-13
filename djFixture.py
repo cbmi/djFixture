@@ -26,11 +26,12 @@ def inspect(file,reader, jsonModels,fout):
 	fixtures = [];
 	form_dict = {};
 	for form in open(jsonModels,'r'):
-		pk_num = 0;
 		form = json.loads(form);
                 form_name = form['form name'];
 		file.seek(0);
 		reader.next();
+		
+		pk_num = 0;
 		numRepeats = '';
 		primary_key_counter = 0;
 		if form_name.find('~') != -1:
@@ -55,14 +56,14 @@ def inspect(file,reader, jsonModels,fout):
 					might pop up in find_related_forms if it is not changed to a
 					number.
 					"""
-					new_num_repeats = line[numRepeats.replace('[','').replace(']','')];
+					new_num_repeats=line[numRepeats.replace('[','').replace(']','')];
 					if not new_num_repeats:
 						new_num_repeats = 0;
 					#form_name is formatted like formName 5~otherForm 5 before
 					#this change
-					new_form_name = form_name.split('~')[0].split(' ')[0] + 											' ' + str(new_num_repeats);
+					new_form_name = form_name.split('~')[0].split(' ')[0] + ' ' + str(new_num_repeats);
 					form_dict[new_form_name] = fk_name;
-				if new_form_name:	
+				if new_form_name:
 					foreign_forms_list=find_related_forms(new_form_name,form_dict);
 					new_form_name = '';
 				else:
@@ -74,14 +75,13 @@ def inspect(file,reader, jsonModels,fout):
 			else:
 				pk_num_list.append(pk_num);
 				for field in form['fields']:
-					field_type = get_field_type(field);
 					"""
 					Determines if there are choices in the field, 
 					what they are, and gets the
 					value for each of those fields that includes the choices
 					"""
 					if field['choices']:
-						field_names = get_field_names(field,form_dict);
+						field_names = get_field_names(field,form_dict,field['field name']);
 						checked_line = '';
 						answered = '';
 						for name in field_names:
@@ -109,8 +109,14 @@ def inspect(file,reader, jsonModels,fout):
 def generate_repeating_fixtures(line,form,form_list,fixtures,fixtureDict,keys,pk_num_list,pk_num,primary_key_counter,repeats_num_list=[],full_form_list=None):
 	
 	"""
-	Getting the number of repeats from last value in list because that is the 
- 	least nested form
+	Recursively loops through form_list, getting the number of repeats each form
+	requires from its name. The recursion continues until form_list contains 1 form, which
+	is the current form being inspected.
+
+	Then function then loops through each field in the form. If it has choices, it 
+	generates the column names the data for that field would be under
+	using get_field_names, otherwise it just uses field['field name']. Then
+	adds each field to fixtureDict as a value and the base field name as the key.
 	"""
 	repeats = int(form_list[-1].split(' ')[1]);
 	for i in range(repeats):
@@ -161,6 +167,10 @@ def generate_repeating_fixtures(line,form,form_list,fixtures,fixtureDict,keys,pk
 	return primary_key_counter;
 
 def get_field_name(field,form_list,repeat_num_list):
+	"""
+	Loops through a list of forms. All forms are prefix forms except for the last form
+	in form_list. 
+	"""
 	prefix = '';
 	for i in range(len(form_list)):
 		if form_list[i] != form_list[-1]:
@@ -176,12 +186,19 @@ def get_field_name(field,form_list,repeat_num_list):
 	field_name = prefix + field_name;
 	return field_name;
 	
-def find_related_forms(form_name,form_list,foreign_forms=None):
+def find_related_forms(form_name,form_dict,foreign_forms=None):
+	"""
+	Finds the form_name value in the form_dict. If it is found, the function
+	will call itself using form_dict[form_name].
+
+	This function will continue until no more related forms are found, and will return a 
+	list of them, in order from highest to deepest form relation
+	"""
 	if foreign_forms is None:
 		foreign_forms = [];
-	if form_name in form_list and not form_name in foreign_forms:
+	if form_name in form_dict and not form_name in foreign_forms:
 		foreign_forms.append(form_name);
-		find_related_forms(form_list[form_name],form_list,foreign_forms);
+		find_related_forms(form_dict[form_name],form_dict,foreign_forms);
 	return foreign_forms;
 
 def get_field_names(field,form_dict,field_name=None):
@@ -194,28 +211,15 @@ def get_field_names(field,form_dict,field_name=None):
 	is a checkbox, it splits the possible choices and uses that to find the fields.
 	If it is a radio_other field type, splits choices and uses that info to find the field.
 	"""
-	if field_name == None:
-		field_name = field['field name'];
 	choices_field_names = [];
 	if field['field type'] == 'checkbox':
 		choices = field['choices'].split('|');
-		if form_dict:
-			for choice in choices:
-				choices_field_names.append(field_name.lower() + '___' + choice.split(',')[0].strip(' '));
-		else:
-			for choice in choices:
-				choices_field_names.append(field_name.lower() + '___' + choice.split(',')[0].strip(' '));
+		for choice in choices:
+			choices_field_names.append(field_name.lower() + '___' + choice.split(',')[0].strip(' '));
 	else:
 		choices_field_names.append(field_name.lower());		
 	return choices_field_names;	
 
-def has_field_type(form, field_type):
-	#determines if a form has a field with field_type
-	for field in form['fields']:
-		if field['field type'] == field_type:
-			return field;
-	return '';
-	
 def readHeader(file=None,jsonFile=None):
 	if not file:
 		file = raw_input('Enter a valid filename: ');
@@ -264,6 +268,7 @@ def get_field_type(field):
         this routine will return the given field type name, as well as any additional keyword
         parameters and notes for the field.
         """
+
         required = field['required'];
         validation_type = field['validation type'];
         field_type = field['field type'];
@@ -284,7 +289,6 @@ def get_field_type(field):
                         field_type = 'IntegerField'
                 except (ValueError, TypeError):
                         pass
-
         return field_type;
 
 def cast_field(field,field_val):
@@ -321,6 +325,7 @@ def cast_field(field,field_val):
 				return field_val;
 	else:
 		return field_val;
+
 if len(sys.argv) == 3:
 	readHeader(sys.argv[1],sys.argv[2]);
 else:
