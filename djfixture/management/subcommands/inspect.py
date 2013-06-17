@@ -77,7 +77,7 @@ class Command(BaseCommand):
 					full_form_list = foreign_forms_list[:];
 					full_form_list.append(base_form_name);
 					full_form_list = full_form_list[::-1];
-					primary_key_counter=self.generate_repeating_fixtures(line,form,foreign_forms_list,fixtures,fixtureDict,keys,pk_num_list,pk_num,primary_key_counter,[],full_form_list);
+					primary_key_counter=self.generate_repeating_fixtures(line,form,full_form_list,fixtures,keys,pk_num,pk_num_list,primary_key_counter);
 				else:
 					pk_num_list.append(pk_num);
 					for field in form['fields']:
@@ -112,7 +112,7 @@ class Command(BaseCommand):
 					fixtures.append([form_name, fixtureDict]);
 		self.printFixtures(fixtures,pk_num_list,fout);
 
-	def generate_repeating_fixtures(self,line,form,form_list,fixtures,fixtureDict,keys,pk_num_list,pk_num,primary_key_counter,repeats_num_list=[],full_form_list=None):
+	def generate_repeating_fixtures(self,line,form,form_list,fixtures,keys,pk_num,pk_num_list,primary_key_counter):
 	
 		"""
 		Recursively loops through form_list, getting the number of repeats each form
@@ -124,53 +124,61 @@ class Command(BaseCommand):
 		using get_field_names, otherwise it just uses field['field name']. Then
 		adds each field to fixtureDict as a value and the base field name as the key.
 		"""
-		repeats = int(form_list[-1].split(' ')[1]);
+		num_repeats_all = 1;
+		num_repeats_list = [];
+		current_repeat_list = [];
+		counter = 0;
+		
+		for item in form_list:
+			if len(item.split(' ')) > 1:
+				num_repeats_form = item.split(' ')[1];
+				num_repeats_list.insert(0,num_repeats_form);
+				num_repeats_all = int(num_repeats_all) * int(num_repeats_form);
 
-		for i in range(repeats):
-			#repeats_num_list keeps track of the number of iterations the recursion has gone through in each element
-			repeats_num_list.append(i+1);
-			if len(form_list[:-1]) > 0:
-				primary_key_counter=self.generate_repeating_fixtures(line,form,form_list[:-1],fixtures,fixtureDict,keys,pk_num_list,pk_num,primary_key_counter,repeats_num_list,full_form_list);
-			else:
-				primary_key_counter += 1;
-				fixtureDict = {};
-				fk_index = full_form_list.index(form_list[0]) - 1;
-				foreign_key = full_form_list[fk_index].lower().split(' ')[0];
-				if fk_index == 0:
-					fixtureDict[foreign_key] = ['',pk_num];
-				else:	
-					fixtureDict[foreign_key] = ['',int(math.ceil(primary_key_counter/float(repeats)))];
-				pk_num_list.append(primary_key_counter);
-				for field in form['fields']:
-					clean_field_name = re.sub('\${d\}','',field['field name']);
-					#removed first element(base form) from full_form_list for naming
-					field_name = self.get_field_name(field,full_form_list[1:],repeats_num_list);
-					if field['choices']:
-						field_names = self.get_field_names(field,full_form_list[1:],field_name);
-						checked_line = '';
-						answered = '';
-						for name in field_names:
-							if name in keys:
-								if len(field_names) > 1:
-									if line[name] == '1':
-										checked_line = name[-1];
-										answered = True;
-									elif line[name] == '0':
-										answered = True;
-								else:
-									if line[name]:
-										checked_line = line[name];
-						if checked_line:			
-							fixtureDict[clean_field_name]=[field,checked_line];
-						elif answered is True:
-							fixtureDict[clean_field_name]=[field,'0'];
-						else:
-							fixtureDict[clean_field_name]=[field,''];
-					elif field_name.lower() in keys:
-						fixtureDict[field_name] = [field,line[field_name]];
-				clean_form_name = form['form name'].split(' ')[0].replace('$','');
-				fixtures.append([clean_form_name, fixtureDict]);
-			repeats_num_list.pop();
+		for i in range(num_repeats_all):
+			primary_key_counter += 1;
+			fixtureDict = {};
+			current_repeat_list = [];
+			form_num_list = [];
+			for item in num_repeats_list:
+				current_repeat = (i % int(item)) + 1;
+				current_repeat_list.append(current_repeat);
+			fk_index = len(form_list)-2;
+			foreign_key = form_list[fk_index].lower().split(' ')[0];
+			if fk_index == 0:
+				fixtureDict[foreign_key] = ['',pk_num];
+			else:	
+				fk_num = int(math.ceil(primary_key_counter/float(num_repeats_list[0])));
+				fixtureDict[foreign_key] = ['',fk_num];
+			pk_num_list.append(primary_key_counter);
+			for field in form['fields']:
+				clean_field_name = re.sub('\${d\}','',field['field name']);
+				base_field_name = self.get_field_name(field,form_list[1:],current_repeat_list);
+				if field['choices']:
+					field_names = self.get_field_names(field,form_list[1:],base_field_name);
+					checked_line = '';
+					answered = '';
+					for name in field_names:
+						if name in keys:
+							if len(field_names) > 1:
+								if line[name] == '1':
+									checked_line = name[-1];
+									answered = True;
+								elif line[name] == '0':
+									answered = True;
+							else:
+								if line[name]:
+									checked_line = line[name];
+					if checked_line:			
+						fixtureDict[clean_field_name]=[field,checked_line];
+					elif answered is True:
+						fixtureDict[clean_field_name]=[field,'0'];
+					else:
+						fixtureDict[clean_field_name]=[field,''];
+				elif base_field_name.lower() in keys:
+					fixtureDict[field_name] = [field,line[base_field_name]];
+			clean_form_name = form['form name'].split(' ')[0].replace('$','');
+			fixtures.append([clean_form_name, fixtureDict]);
 		return primary_key_counter;
 
 	def get_field_name(self,field,form_list,repeat_num_list):
