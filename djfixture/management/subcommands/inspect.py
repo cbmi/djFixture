@@ -77,7 +77,7 @@ class Command(BaseCommand):
 					full_form_list = foreign_forms_list[:];
 					full_form_list.append(base_form_name);
 					full_form_list = full_form_list[::-1];
-					primary_key_counter=self.generate_repeating_fixtures(line,form,full_form_list,fixtures,keys,pk_num,pk_num_list,primary_key_counter);
+					primary_key_counter=self.generate_repeating_fixtures(line,form,full_form_list,fixtures,keys,   								pk_num,pk_num_list,primary_key_counter);
 				else:
 					pk_num_list.append(pk_num);
 					for field in form['fields']:
@@ -144,7 +144,7 @@ class Command(BaseCommand):
 				current_repeat = (i % int(item)) + 1;
 				current_repeat_list.append(current_repeat);
 			fk_index = len(form_list)-2;
-			foreign_key = form_list[fk_index].lower().split(' ')[0];
+			foreign_key = form_list[fk_index].lower().split(' ')[0].replace('_','');
 			if fk_index == 0:
 				fixtureDict[foreign_key] = ['',pk_num];
 			else:	
@@ -192,7 +192,7 @@ class Command(BaseCommand):
 				str_split = form_list[i].split(' ');
 				name = str_split[0];
 				num_repeats = repeat_num_list[i];
-				prefix = name.replace('$',str(num_repeats));
+				prefix = name + str(num_repeats);
 				prefix = prefix + '_';
 			elif field['field name'].find('${d}') != -1:
 				field_name = re.sub('\$\{d\}',str(repeat_num_list[-1]),field['field name']);
@@ -271,7 +271,7 @@ class Command(BaseCommand):
 					else:
 						#if it is just a foreign key
 						fieldDict[key] = field_val;
-			allJson.append(	{'model': 'mysite.' + fixturesList[i][0] + '',
+			allJson.append(	{'model': 'mysite.' + fixturesList[i][0].replace('_','') + '',
 				'pk': pkList[i],
 				'fields': fieldDict
 				});
