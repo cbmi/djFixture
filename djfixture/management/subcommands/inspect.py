@@ -49,7 +49,6 @@ class Command(BaseCommand):
 				form_dict = {};
 			for line in reader:
 				pk_num += 1;
-				keys = line.keys();
 				fixtureDict = {};
 				if numRepeats:
 					if numRepeats.isdigit() is False:
@@ -77,7 +76,7 @@ class Command(BaseCommand):
 					full_form_list = foreign_forms_list[:];
 					full_form_list.append(base_form_name);
 					full_form_list = full_form_list[::-1];
-					primary_key_counter=self.generate_repeating_fixtures(line,form,full_form_list,fixtures,keys,   								pk_num,pk_num_list,primary_key_counter);
+					primary_key_counter=self.generate_repeating_fixtures(line,form,full_form_list,fixtures,pk_num,pk_num_list,primary_key_counter);
 				else:
 					pk_num_list.append(pk_num);
 					for field in form['fields']:
@@ -91,7 +90,7 @@ class Command(BaseCommand):
 							checked_line = '';
 							answered = '';
 							for name in field_names:
-								if name in keys:
+								try:
 									if len(field_names) > 1:
 										if line[name] == '1':
 											checked_line = name[-1];
@@ -101,34 +100,38 @@ class Command(BaseCommand):
 									else:	
 										if line[name]:
 											checked_line = line[name];
+								except KeyError:
+									#print 'ERROR: NOT FOUND ' + name;
+                                                        		#print field;
+                                                        		#print field_names;
+									pass;
+							
 							if checked_line:
 								fixtureDict[field['field name']]=[field,checked_line];
 							elif answered is True:
 								fixtureDict[field['field name']]=[field,'0'];
 							else:
 								fixtureDict[field['field name']]=[field,''];
-						elif field['field name'].lower() in keys:
-							fixtureDict[field['field name']] = [field,line[field['field name']]];
+						else:
+							try:
+								fixtureDict[field['field name']] = [field,line[field['field name']]];
+							except KeyError:
+								#print 'ERROR: NOT FOUND ' + field['field name'];
+								#print field;
+								pass;
 					fixtures.append([form_name, fixtureDict]);
 		self.printFixtures(fixtures,pk_num_list,fout);
 
-	def generate_repeating_fixtures(self,line,form,form_list,fixtures,keys,pk_num,pk_num_list,primary_key_counter):
-	
+	def generate_repeating_fixtures(self,line,form,form_list,fixtures,pk_num,pk_num_list,primary_key_counter):
 		"""
-		Recursively loops through form_list, getting the number of repeats each form
-		requires from its name. The recursion continues until form_list contains 1 form, which
-		is the current form being inspected.
-
-		Then function then loops through each field in the form. If it has choices, it 
-		generates the column names the data for that field would be under
-		using get_field_names, otherwise it just uses field['field name']. Then
-		adds each field to fixtureDict as a value and the base field name as the key.
+		This function generates the fixture dictionaries for a repeating form.
 		"""
 		num_repeats_all = 1;
 		num_repeats_list = [];
 		current_repeat_list = [];
 		counter = 0;
 		
+		current_repeat_list = [1] * len(form_list[1:]);
 		for item in form_list:
 			if len(item.split(' ')) > 1:
 				num_repeats_form = item.split(' ')[1];
@@ -138,11 +141,7 @@ class Command(BaseCommand):
 		for i in range(num_repeats_all):
 			primary_key_counter += 1;
 			fixtureDict = {};
-			current_repeat_list = [];
 			form_num_list = [];
-			for item in num_repeats_list:
-				current_repeat = (i % int(item)) + 1;
-				current_repeat_list.append(current_repeat);
 			fk_index = len(form_list)-2;
 			foreign_key = form_list[fk_index].lower().split(' ')[0].replace('_','');
 			if fk_index == 0:
@@ -153,13 +152,13 @@ class Command(BaseCommand):
 			pk_num_list.append(primary_key_counter);
 			for field in form['fields']:
 				clean_field_name = re.sub('\${d\}','',field['field name']);
-				base_field_name = self.get_field_name(field,form_list[1:],current_repeat_list);
+				base_field_name = self.get_field_name(field,form_list[1:],current_repeat_list).lower();
 				if field['choices']:
 					field_names = self.get_field_names(field,form_list[1:],base_field_name);
 					checked_line = '';
 					answered = '';
 					for name in field_names:
-						if name in keys:
+						try:
 							if len(field_names) > 1:
 								if line[name] == '1':
 									checked_line = name[-1];
@@ -169,16 +168,31 @@ class Command(BaseCommand):
 							else:
 								if line[name]:
 									checked_line = line[name];
+						except KeyError:
+							#print 'ERROR: NOT FOUND ' + name;
+							#print field;
+							#print field_names;
+							pass;
 					if checked_line:			
 						fixtureDict[clean_field_name]=[field,checked_line];
 					elif answered is True:
 						fixtureDict[clean_field_name]=[field,'0'];
 					else:
 						fixtureDict[clean_field_name]=[field,''];
-				elif base_field_name.lower() in keys:
-					fixtureDict[field_name] = [field,line[base_field_name]];
+				else:
+					try:
+						fixtureDict[field_name]=[field,line[base_field_name]];
+                                        except KeyError:
+						print 'ERROR: NOT FOUND ' + base_field_name;
+						print field;
+						print base_field_name;
+						#pass;
 			clean_form_name = form['form name'].split(' ')[0].replace('$','');
 			fixtures.append([clean_form_name, fixtureDict]);
+			
+			cur_ind = len(current_repeat_list) - 1;
+			self.update_current_repeats(num_repeats_list[::-1],current_repeat_list,cur_ind)
+			
 		return primary_key_counter;
 
 	def get_field_name(self,field,form_list,repeat_num_list):
@@ -188,12 +202,12 @@ class Command(BaseCommand):
 		"""
 		prefix = '';
 		for i in range(len(form_list)):
-			if form_list[i] != form_list[-1]:
+			if i != len(form_list)-1:
 				str_split = form_list[i].split(' ');
 				name = str_split[0];
+				name = re.sub('\d$','',name);
 				num_repeats = repeat_num_list[i];
-				prefix = name + str(num_repeats);
-				prefix = prefix + '_';
+				prefix = prefix + name + str(num_repeats) + '_';
 			elif field['field name'].find('${d}') != -1:
 				field_name = re.sub('\$\{d\}',str(repeat_num_list[-1]),field['field name']);
 			else:
@@ -227,7 +241,7 @@ class Command(BaseCommand):
 		If it is a radio_other field type, splits choices and uses that info to find the field.
 		"""
 		choices_field_names = [];
-		if field['field type'] == 'checkbox':
+		if field['field type'] == 'checkbox' or field['field type'] == 'checkbox_other' or field['field type'] == 'checkbox_details':
 			choices = field['choices'].split('|');
 			for choice in choices:
 				choices_field_names.append(field_name.lower() + '___' + choice.split(',')[0].strip(' '));
@@ -235,6 +249,15 @@ class Command(BaseCommand):
 			choices_field_names.append(field_name.lower());		
 		return choices_field_names;	
 
+	def update_current_repeats(self,form_list,current_repeats_list,cur_index):
+		if int(current_repeats_list[cur_index]) >= int(form_list[cur_index]):
+			current_repeats_list[cur_index] = 1;
+			if len(form_list) - 1 > 0:
+				cur_index -= 1;
+				self.update_current_repeats(form_list,current_repeats_list,cur_index);
+		else:
+			current_repeats_list[cur_index] += 1;
+			
 	def handle(self,file=None,jsonFile=None, *args, **options):
 		if not file:
 			raise CommandError('Enter a valid CSV file');
@@ -249,7 +272,6 @@ class Command(BaseCommand):
 		reader.next();
 
 		fout = open('fixtures','w+');
-
 		self.csv2fixture(fin,reader,jsonFile,fout);
 
 	def printFixtures(self,fixturesList,pkList,fout):
