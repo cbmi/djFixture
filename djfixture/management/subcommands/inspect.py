@@ -25,12 +25,19 @@ class Command(BaseCommand):
 	requires_model_validation = False;
 	db_module = 'django.db'
 	args = 'file','jsonfile';
+
 	def csv2fixture(self,file,reader,jsonModels,fout):
 		base_form_name = '';
+		new_form_name = '';
 		form_name = '';
 		pk_num_list = [];
 		fixtures = [];
 		form_dict = {};
+		
+		file.seek(0);	
+		reader.next();
+		pk_num = 0;
+		
 		for form in open(jsonModels,'r'):
 			form = json.loads(form);
         	        form_name = form['form name'];
@@ -76,6 +83,7 @@ class Command(BaseCommand):
 					full_form_list = foreign_forms_list[:];
 					full_form_list.append(base_form_name);
 					full_form_list = full_form_list[::-1];
+
 					primary_key_counter=self.generate_repeating_fixtures(line,form,full_form_list,fixtures,pk_num,pk_num_list,primary_key_counter);
 				else:
 					pk_num_list.append(pk_num);
@@ -152,9 +160,12 @@ class Command(BaseCommand):
 			pk_num_list.append(primary_key_counter);
 			for field in form['fields']:
 				clean_field_name = re.sub('\${d\}','',field['field name']);
-				base_field_name = self.get_field_name(field,form_list[1:],current_repeat_list).lower();
+				if len(form_list[2:]) == 0:
+					base_field_name = field['field name'];
+				else:
+					base_field_name = self.get_field_name(field,form_list[2:],current_repeat_list).lower();
 				if field['choices']:
-					field_names = self.get_field_names(field,form_list[1:],base_field_name);
+					field_names = self.get_field_names(field,form_list[2:],base_field_name);
 					checked_line = '';
 					answered = '';
 					for name in field_names:
@@ -169,9 +180,9 @@ class Command(BaseCommand):
 								if line[name]:
 									checked_line = line[name];
 						except KeyError:
-							#print 'ERROR: NOT FOUND ' + name;
-							#print field;
-							#print field_names;
+							print 'ERROR: NOT FOUND ' + name;
+							print field;
+							print field_names;
 							pass;
 					if checked_line:			
 						fixtureDict[clean_field_name]=[field,checked_line];
@@ -181,12 +192,12 @@ class Command(BaseCommand):
 						fixtureDict[clean_field_name]=[field,''];
 				else:
 					try:
-						fixtureDict[field_name]=[field,line[base_field_name]];
+						fixtureDict[clean_field_name]=[field,line[base_field_name]];
                                         except KeyError:
-						print 'ERROR: NOT FOUND ' + base_field_name;
-						print field;
-						print base_field_name;
-						#pass;
+						#print 'ERROR: NOT FOUND ' + base_field_name;
+						#print field;
+						#print base_field_name;
+						pass;
 			clean_form_name = form['form name'].split(' ')[0].replace('$','');
 			fixtures.append([clean_form_name, fixtureDict]);
 			
@@ -252,7 +263,7 @@ class Command(BaseCommand):
 	def update_current_repeats(self,form_list,current_repeats_list,cur_index):
 		if int(current_repeats_list[cur_index]) >= int(form_list[cur_index]):
 			current_repeats_list[cur_index] = 1;
-			if len(form_list) - 1 > 0:
+			if cur_index - 1 >= 0:
 				cur_index -= 1;
 				self.update_current_repeats(form_list,current_repeats_list,cur_index);
 		else:
@@ -360,5 +371,8 @@ class Command(BaseCommand):
 					return False;
 				else:
 					return field_val;
-		else:
+		elif field_type == 'DateField':
+			if field_val:
+				return field_val;
+		else: 
 			return field_val;
