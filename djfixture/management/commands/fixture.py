@@ -36,8 +36,8 @@ class Command(BaseCommand):
         """Set up any environment changes requested (e.g., Python path
         and Django settings), then run this command.
         """
-        if len(argv) > 2 and not argv[2].startswith('-') and argv[2] in self.commands:
-            subcommand = argv[2]
+        if len(argv) > 3 and not argv[3].startswith('-') and argv[3] in self.commands:
+            subcommand = argv[3]
             klass = self.get_subcommand(subcommand)
             parser = OptionParser(prog=argv[0], usage=klass.usage('{0} {1}'.format(argv[1], subcommand)),
                 version=klass.get_version(), option_list=klass.option_list)

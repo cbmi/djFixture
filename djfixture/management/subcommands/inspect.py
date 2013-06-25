@@ -21,6 +21,9 @@ field_types = {
         'yesno': 'BooleanField',
         'truefalse': 'BooleanField',
 }
+
+projectName = '';
+
 class Command(BaseCommand):
 	requires_model_validation = False;
 	db_module = 'django.db'
@@ -269,12 +272,17 @@ class Command(BaseCommand):
 		else:
 			current_repeats_list[cur_index] += 1;
 			
-	def handle(self,file=None,jsonFile=None, *args, **options):
+	def handle(self,file=None,jsonFile=None,appName=None, *args, **options):
 		if not file:
 			raise CommandError('Enter a valid CSV file');
 	
 		if not jsonFile:
 			raise CommandError('Enter a valid JSON file');
+		if not appName:
+			raise CommandError('Enter the name of your django project');
+	
+		global projectName;
+		projectName = appName;
 	
 		fin = open(file);
 		header_keys = fin.readline().split(',')
@@ -304,7 +312,7 @@ class Command(BaseCommand):
 					else:
 						#if it is just a foreign key
 						fieldDict[key] = field_val;
-			allJson.append(	{'model': 'mysite.' + fixturesList[i][0].replace('_','') + '',
+			allJson.append(	{'model': projectName + '.' + fixturesList[i][0].replace('_','') + '',
 				'pk': pkList[i],
 				'fields': fieldDict
 				});
