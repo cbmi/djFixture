@@ -9,9 +9,11 @@ djfixture/management/commands/__init__.py
 djfixture/management/commands/fixture.py
 djfixture/management/subcommands/__init__.py
 djfixture/management/subcommands/inspect.py
-djfixture/tests/data.csv
-djfixture/tests/fixtures
-djfixture/tests/input.json
-djfixture/tests/input2.csv
-djfixture/tests/input2.json
-djfixture/tests/pType.csv
+djfixture/tests/__init__.py
+djfixture/tests/commands.py
+djfixture/tests/fixtures/cmp_fixture_with_rep_fields.json
+djfixture/tests/fixtures/cmp_fixture_without_rep_fields.json
+djfixture/tests/fixtures/fixture_with_rep_fields.csv
+djfixture/tests/fixtures/fixture_with_rep_fields.json
+djfixture/tests/fixtures/fixture_without_rep_fields.csv
+djfixture/tests/fixtures/fixture_without_rep_fields.json

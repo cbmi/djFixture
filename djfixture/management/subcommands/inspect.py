@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import sys
+import os
 import csv
 import json
 import re
@@ -89,6 +90,8 @@ class Command(BaseCommand):
 
 					primary_key_counter=self.generate_repeating_fixtures(line,form,full_form_list,fixtures,pk_num,pk_num_list,primary_key_counter);
 				else:
+					#code for generating a fixture without foreign keys
+					#not used currently with the addition of record form
 					pk_num_list.append(pk_num);
 					for field in form['fields']:
 						"""
@@ -142,7 +145,9 @@ class Command(BaseCommand):
 		current_repeat_list = [];
 		counter = 0;
 		
+		#populates current_repeat_list with 1s, amount equal to length of form_list - 1
 		current_repeat_list = [1] * len(form_list[1:]);
+		#determines number of repeats from items in form_list
 		for item in form_list:
 			if len(item.split(' ')) > 1:
 				num_repeats_form = item.split(' ')[1];
@@ -163,6 +168,8 @@ class Command(BaseCommand):
 			pk_num_list.append(primary_key_counter);
 			for field in form['fields']:
 				clean_field_name = re.sub('\${d\}','',field['field name']);
+				#form_list[0] and form_list[1] are both 'base forms'
+				#form_list[0] is record, form_list[1] is the form name given for each field without repeating
 				if len(form_list[2:]) == 0:
 					base_field_name = field['field name'];
 				else:
@@ -183,11 +190,12 @@ class Command(BaseCommand):
 								if line[name]:
 									checked_line = line[name];
 						except KeyError:
-							print 'ERROR: NOT FOUND ' + name;
-							print field;
-							print field_names;
+							#print 'ERROR: FIELD NOT FOUND ' + name;
+							#print field;
+							#print field_names;
 							pass;
-					if checked_line:			
+					#if the line is checked, the number of the option is the answer
+					if checked_line:
 						fixtureDict[clean_field_name]=[field,checked_line];
 					elif answered is True:
 						fixtureDict[clean_field_name]=[field,'0'];
@@ -212,7 +220,7 @@ class Command(BaseCommand):
 	def get_field_name(self,field,form_list,repeat_num_list):
 		"""
 		Loops through a list of forms. All forms are prefix forms except for the last form
-		in form_list. 
+		in form_list.
 		"""
 		prefix = '';
 		for i in range(len(form_list)):
@@ -232,8 +240,10 @@ class Command(BaseCommand):
 	def find_related_forms(self,form_name,form_dict,foreign_forms=None):
 		"""
 		Finds the form_name value in the form_dict. If it is found, the function
-		will call itself using form_dict[form_name].
-
+		will call itself using form_dict[form_name]. The form_dict is a dictionary 
+		with the keys being a form name and the value being the name of the form they
+		have a foreign key relation with. Ex: form_dict['Microarray 1'] = 'Prior Gen Testing'
+		
 		This function will continue until no more related forms are found, and will return a 
 		list of them, in order from highest to deepest form relation
 		"""
@@ -252,7 +262,10 @@ class Command(BaseCommand):
 
 		This method finds the fields in the data file that are related to the field parameter. If it
 		is a checkbox, it splits the possible choices and uses that to find the fields.
-		If it is a radio_other field type, splits choices and uses that info to find the field.
+		
+		If another special case for field names needs to be added, all that
+		needs to be done is add an elif statement with the field type or variable
+		it depends on.
 		"""
 		choices_field_names = [];
 		if field['field type'] == 'checkbox' or field['field type'] == 'checkbox_other' or field['field type'] == 'checkbox_details':
@@ -264,6 +277,21 @@ class Command(BaseCommand):
 		return choices_field_names;	
 
 	def update_current_repeats(self,form_list,current_repeats_list,cur_index):
+		"""
+		Updates the current_repeats_list depending on form_list([5,5,5] which is a list
+		of numbers indicating the max number of repeats needed) and 
+		current_repeats_list([1,1,1] which is a list of numbers indicating what iteration
+		the repeating is on). When function is first called, cur_index will be 0.
+		Iterates the current_repeats_list like [1,1,1][1,1,2][1,1,3][1,2,1][1,2,2][1,2,3]
+
+		if the element at cur_index in current_repeats_list is greater than or equal
+		to the element in form_list at cur_index (Both of these are ints), then 'reset'
+		the element in current_repeats_list.
+			if the cur_index - 1 is not negative (still in bounds + cur_index is
+			not first index) then recursively call update_current_repeats on 
+			cur_index - 1
+		else add 1 to current_repeats_list[cur_index]
+		"""
 		if int(current_repeats_list[cur_index]) >= int(form_list[cur_index]):
 			current_repeats_list[cur_index] = 1;
 			if cur_index - 1 >= 0:
@@ -275,7 +303,6 @@ class Command(BaseCommand):
 	def handle(self,file=None,jsonFile=None,appName=None, *args, **options):
 		if not file:
 			raise CommandError('Enter a valid CSV file');
-	
 		if not jsonFile:
 			raise CommandError('Enter a valid JSON file');
 		if not appName:
@@ -290,13 +317,19 @@ class Command(BaseCommand):
 		reader = csv.DictReader(fin, fieldnames=header_keys,dialect=dialect);
 		reader.next();
 
-		fout = open('fixtures','w+');
+		fout = open(os.path.join(os.path.dirname(file),'fixtures.json'),'w+');
 		self.csv2fixture(fin,reader,jsonFile,fout);
 
 	def printFixtures(self,fixturesList,pkList,fout):
 		"""
 		fixturesList is a list of lists. Each element is a list of [form name,fixtureDict]
 		Each element in fixtureDict is [field, field_val]
+		
+		function loops through each element in fixturesList, then each key(element) in
+		fixturesList[i][1](a fixtureDict) and determines if its fields are blank. If
+		they are not blank, the field is added to fieldDict.
+
+		fieldDict is then printed all fields in each fixtureDict has been checked
 		"""
 		allJson = [];
 		firstFix = True;
@@ -321,7 +354,7 @@ class Command(BaseCommand):
 	def get_field_type(self,field):
 		"""
 		Given the database connection, the table name, and the cursor row description,
-		this routine will return the given field type name, as well as any additional keyword
+		this routine will return the given field type name,as well as any additional keyword
 		parameters and notes for the field.
 		"""
 
