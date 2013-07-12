@@ -19,7 +19,6 @@ cd dist
 tar xvfz dj	ango-fixture-0.1.1b2
 cd django-redcap-0.1.1b2
 python setup.py install --user
-
 ```
 
 Once installed, simply add `djfixture` to your `INSTALLED_APPS` project settings:
@@ -43,6 +42,5 @@ Commands are executed using the `fixture` command with a sub-command, e.g.:
 
 ```bash
 ./manage.py fixture inspect path/to/exported/data.csv path/to/djredcap/file.json
-
 ```
 
