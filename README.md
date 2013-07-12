@@ -1,4 +1,4 @@
-django-redcap
+django-fixture
 =============
 
 Utilities for generating django fixtures from a csv data file and json file
