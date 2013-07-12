@@ -8,6 +8,7 @@ djfixture/management/__init__.py
 djfixture/management/commands/__init__.py
 djfixture/management/commands/fixture.py
 djfixture/management/subcommands/__init__.py
+djfixture/management/subcommands/djfixture.py
 djfixture/management/subcommands/inspect.py
 djfixture/tests/__init__.py
 djfixture/tests/commands.py
