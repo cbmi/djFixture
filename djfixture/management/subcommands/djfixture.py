@@ -29,7 +29,10 @@ requires_model_validation = False;
 db_module = 'django.db'
 args = 'file','jsonfile';
 
-def csv2fixture(self,file,reader,jsonModels,fout):
+def csv2fixture(self,file,reader,jsonModels,pName,fout):
+	global projectName;
+	projectName = pName;
+	
 	base_form_name = '';
 	new_form_name = '';
 	form_name = '';

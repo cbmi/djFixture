@@ -26,12 +26,14 @@ class Command(BaseCommand):
 	
 		global projectName;
 		projectName = appName;
-	
+		
 		fin = open(file);
 		header_keys = fin.readline().split(',')
 		dialect = csv.Sniffer().sniff(fin.read(1024));
 		reader = csv.DictReader(fin,fieldnames=header_keys,dialect=dialect);
+		#print 'reader'
+		#print reader;
 		reader.next();
 
 		fout = open(os.path.join(os.path.dirname(file),'fixtures.json'),'w+');
-		djfixture.csv2fixture(self,fin,reader,jsonFile,fout);
+		djfixture.csv2fixture(self,fin,reader,jsonFile,projectName,fout);
