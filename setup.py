@@ -78,7 +78,7 @@ setup(
     description = 'Utilities for generating django fixtures from a csv data file and django model JSON schema',
     license = 'BSD',
     keywords = 'fixture JSON django utils',
-    url = 'https://github.com/dmegahan/djFixture/',
+    url = 'https://github.com/cbmi/djFixture/',
 
     packages = packages,
     cmdclass = cmdclasses,
