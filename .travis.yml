@@ -8,6 +8,6 @@ env:
 virtualenv:
     system_site_packages: true
 install:
-    - pip install -q Django=$DJANGO --use-mirrors
+    - pip install -q Django==$DJANGO --use-mirrors
 script:
     - python setup.py test
