@@ -14,7 +14,7 @@ def get_filename(filename):
 class FixtureTestCase(TestCase):
     def test_csv_with_repeating_fields(self):
         fileName = 'fixture_with_rep_fields';
-            csv_fileName1 = fileName + '.csv';
+        csv_fileName1 = fileName + '.csv';
         csv_fileName2 = fileName + '.json';
         cmp_fileName = 'cmp_' + fileName + '.json';
         call_command('fixture','inspect',get_filename(csv_fileName1),
