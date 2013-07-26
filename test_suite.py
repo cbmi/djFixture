@@ -8,4 +8,4 @@ apps = [
 	'test',
 ]
 
-management.call_command(*apps);
+management.call_command(*apps)
