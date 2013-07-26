@@ -20,7 +20,7 @@ class FixtureTestCase(TestCase):
 		call_command('fixture','inspect',get_filename(csv_fileName1),get_filename(csv_fileName2),'mysite');
         	cmp_file = open(get_filename(cmp_fileName));
 		for line1, line2 in izip(open(get_filename('fixtures.json'),'r'),open(get_filename(cmp_fileName),'r')):
-			self.assertEqual(line1,line2);	
+			self.assertAlmostEqual(line1,line2);	
 
 	def test_csv_without_repeating_fields(self):
 		fileName = 'fixture_without_rep_fields';
@@ -30,4 +30,4 @@ class FixtureTestCase(TestCase):
 		call_command('fixture','inspect',get_filename(csv_fileName1),get_filename(csv_fileName2),'mysite');
 		cmp_file = open(get_filename(cmp_fileName));
 		for line1, line2 in izip(open(get_filename('fixtures.json'),'r'),open(get_filename(cmp_fileName),'r')):
-         	       self.assertEqual(line1,line2);
+         	       self.assertAlmostEqual(line1,line2);
