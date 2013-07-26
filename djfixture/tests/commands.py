@@ -28,15 +28,17 @@ class FixtureTestCase(TestCase):
 			label_line2 = line2[:line2_find];
 			num_line2 =  line2[line2_find:];
 			
-			try:
-				ret1 = int(num_line1);
-			except ValueError:
-				ret1 = float(num_line1);
-
-			try:
-				ret2 = int(num_line2);
-			except ValueError:
-				ret2 = float(num_line2);
+			if num_line1:
+				try:
+					ret1 = int(num_line1);
+				except ValueError:
+					ret1 = float(num_line1);
+			
+			if num_line2:
+				try:
+					ret2 = int(num_line2);
+				except ValueError:
+					ret2 = float(num_line2);
 
 			self.assertEqual(label_line1,label_line2);
 			self.assertAlmostEqual(ret1,ret2);	
