@@ -19,7 +19,7 @@ kwargs = {
     'test_suite': 'test_suite',
 
     'tests_require': [
-	'coverage',
+		'coverage',
     ],
 
     'version': version,
@@ -30,8 +30,6 @@ kwargs = {
     'license': 'BSD',
     'keywords': 'fixture JSON django utils',
     'url': 'https://github.com/cbmi/djFixture/',
-
-    'install_requires': ['distribute', 'django'],
 
     'classifiers': [
         'Development Status :: 4 - Beta',
