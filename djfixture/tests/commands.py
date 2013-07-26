@@ -23,10 +23,10 @@ class FixtureTestCase(TestCase):
 			line1_find = line1.find(':');
 			line2_find = line2.find(':');
 
-			label_line1 = line1[:line1_find+1];
-			num_line1 = line1[line1_find+1:];
-			label_line2 = line2[:line2_find+1];
-			num_line2 =  line2[line2_find+1:];
+			label_line1 = line1[:line1_find];
+			num_line1 = line1[line1_find:];
+			label_line2 = line2[:line2_find];
+			num_line2 =  line2[line2_find:];
 			
 			try:
 				ret1 = int(num_line1);
