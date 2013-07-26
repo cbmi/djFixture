@@ -42,4 +42,4 @@ kwargs = {
     ],
 }
 
-setup(**kwargs);
+setup(**kwargs)
