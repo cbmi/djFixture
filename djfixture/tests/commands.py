@@ -27,8 +27,19 @@ class FixtureTestCase(TestCase):
 			num_line1 = line1[line1_find+1:];
 			label_line2 = line2[:line2_find+1];
 			num_line2 =  line2[line2_find+1:];
+			
+			try:
+				ret1 = int(num_line1);
+			except ValueError:
+				ret1 = float(num_line1);
+
+			try:
+				ret2 = int(num_line2);
+			except ValueError:
+				ret2 = float(num_line2);
+
 			self.assertEqual(label_line1,label_line2);
-			self.assertAlmostEqual(float(num_line1),float(num_line2));	
+			self.assertAlmostEqual(ret1,ret2);	
 
 	def test_csv_without_repeating_fields(self):
 		fileName = 'fixture_without_rep_fields';
