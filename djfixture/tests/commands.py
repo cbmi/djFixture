@@ -20,7 +20,15 @@ class FixtureTestCase(TestCase):
 		call_command('fixture','inspect',get_filename(csv_fileName1),get_filename(csv_fileName2),'mysite');
         	cmp_file = open(get_filename(cmp_fileName));
 		for line1, line2 in izip(open(get_filename('fixtures.json'),'r'),open(get_filename(cmp_fileName),'r')):
-			self.assertAlmostEqual(line1,line2);	
+			line1_find = line1.find(':');
+			line2_find = line2.find(':');
+
+			label_line1 = line1[:line1_find+1];
+			num_line1 = line1[line1_find+1:];
+			label_line2 = line2[:line2_find+1];
+			num_line2 =  line2[line2_find+1:];
+			self.assertEqual(label_line1,label_line2);
+			self.assertAlmostEqual(float(num_line1),float(num_line2));	
 
 	def test_csv_without_repeating_fields(self):
 		fileName = 'fixture_without_rep_fields';
