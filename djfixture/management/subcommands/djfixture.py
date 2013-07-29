@@ -304,9 +304,9 @@ def get_field_names(self, field, form_dict, field_name=None):
     it depends on.
     """
     choices_field_names = []
-    if field['field type'] == 'checkbox' or
-    field['field type'] == 'checkbox_other' or
-    field['field type'] == 'checkbox_details':
+    if field['field type'] == 'checkbox' or \
+        field['field type'] == 'checkbox_other' or \
+        field['field type'] == 'checkbox_details':
 
         choices = field['choices'].split('|')
         for choice in choices:
