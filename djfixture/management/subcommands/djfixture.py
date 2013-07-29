@@ -6,6 +6,7 @@ import csv
 import json
 import re
 import math
+from decimal import Decimal
 from django.core.management.base import BaseCommand, CommandError
 
 field_types = {
@@ -421,7 +422,7 @@ def cast_field(self, field, field_val):
             return int(field_val)
     elif field_type == 'FloatField':
         try:
-            return float(field_val)
+            return Decimal(field_val)
         except:
             pass
     elif field_type == 'NullBooleanField':
