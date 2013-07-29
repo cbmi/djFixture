@@ -36,4 +36,4 @@ class Command(BaseCommand):
 		reader.next();
 
 		fout = open(os.path.join(os.path.dirname(file),'fixtures.json'),'w+');
-		djfixture.csv2fixture(self,fin,reader,jsonFile,projectName,fout);
+		djfixture.csv_2_fixture(self,fin,reader,jsonFile,projectName,fout);
