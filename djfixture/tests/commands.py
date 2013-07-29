@@ -7,9 +7,25 @@ from itertools import izip
 from itertools import izip_longest
 
 __all__ = ('FixtureTestCase',)
+
+
 def get_filename(filename):
     from djfixture import tests
     return os.path.join(os.path.dirname(tests.__file__), 'fixtures', filename)
+
+
+def split_assert(self,line1,line2):
+    data1 = line1.split(':');
+    data2 = line2.split(':');
+
+    try:
+        self.assertEqual(line1,line2);
+    except AssertionError:
+        self.assertEqual(data1[0].rstrip('\n'),data2[0].rstrip('\n'));
+        try:
+            self.assertAlmostEqual(float(data1[1]),float(data2[1]))
+        except IndexError:
+            pass;
 
 class FixtureTestCase(TestCase):
     def test_csv_with_repeating_fields(self):
@@ -22,11 +38,7 @@ class FixtureTestCase(TestCase):
         cmp_file = open(get_filename(cmp_fileName));
         for line1, line2 in izip(open(get_filename('fixtures.json'),'r'),
                                     open(get_filename(cmp_fileName),'r')):
-            try:
-                self.assertAlmostEqual(line1,line2);    
-            except TypeError:
-                self.assertEqual(line1,line2);
-
+            split_assert(self,line1,line2);
     def test_csv_without_repeating_fields(self):
         fileName = 'fixture_without_rep_fields';
         csv_fileName1 = fileName + '.csv';
@@ -37,7 +49,4 @@ class FixtureTestCase(TestCase):
         cmp_file = open(get_filename(cmp_fileName));
         for line1, line2 in izip(open(get_filename('fixtures.json'),'r'),
                                     open(get_filename(cmp_fileName),'r')):
-            try:
-                self.assertAlmostEqual(line1,line2);
-            except TypeError:
-                self.assertEqual(line1,line2);
+            split_assert(self,line1,line2);
