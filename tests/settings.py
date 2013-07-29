@@ -10,3 +10,5 @@ DATABASES = {
 INSTALLED_APPS = (
     'tests',
 )
+
+SECRET_KEY = 'xSECRETx'
