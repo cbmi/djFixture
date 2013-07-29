@@ -15,14 +15,16 @@ def get_filename(filename):
 
 
 def split_assert(self,line1,line2):
-    data1 = line1.split(':');
-    data2 = line2.split(':');
+    data1 = line1.rstrip('\n').replace(" ","").split(':');
+    data2 = line2.rstrip('\n').replace(" ","").split(':');
 
     try:
         self.assertEqual(line1,line2);
     except AssertionError:
         self.assertEqual(data1[0].rstrip('\n'),data2[0].rstrip('\n'));
         try:
+            print repr(data1[1]);
+            print repr(data2[1]);
             self.assertAlmostEqual(float(data1[1]),float(data2[1]))
         except IndexError:
             pass;
