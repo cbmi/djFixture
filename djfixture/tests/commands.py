@@ -33,7 +33,7 @@ def split_assert(self, line1, line2):
     except AssertionError:
         self.assertEqual(data1[0],data2[0]);
         try:
-            self.assertAlmostEqual(data1[1],data2[1]);
+            self.assertAlmostEqual(float(data1[1]),float(data2[1]));
         except IndexError:
             pass;
 
