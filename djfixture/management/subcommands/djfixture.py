@@ -422,9 +422,9 @@ def cast_field(self, field, field_val):
             return int(field_val)
     elif field_type == 'FloatField':
         try:
-            return Decimal(field_val)
+            return float(field_val)
         except:
-            pass
+            pass;
     elif field_type == 'NullBooleanField':
         if field_val == '':
             return None
