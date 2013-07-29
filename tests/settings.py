@@ -8,6 +8,7 @@ DATABASES = {
 }
 
 INSTALLED_APPS = (
+    'djfixture',
     'tests',
 )
 
