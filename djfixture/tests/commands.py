@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 from cStringIO import StringIO
 from django.test import TestCase
 from django.core.management import call_command
@@ -14,18 +15,25 @@ def get_filename(filename):
     return os.path.join(os.path.dirname(tests.__file__), 'fixtures', filename)
 
 
-def split_assert(self,line1,line2):
-    data1 = line1.rstrip('\n').replace(" ","").split(':');
-    data2 = line2.rstrip('\n').replace(" ","").split(':');
+def search_num(self, line):
+    pattern = re.compile('\d+(\.\d+)?')
+    search_results = pattern.search(line);
+    if search_results:
+        line_num = float(search_results.group(0))
+    else:
+        raise TypeError("Cannot convert to a float")
 
+def split_assert(self, line1, line2):
+    data1 = line1.rstrip('\n').replace(" ","").replace(",","").split(':')
+    data2 = line2.rstrip('\n').replace(" ","").replace(",","").split(':')
+
+    
     try:
         self.assertEqual(line1,line2);
     except AssertionError:
-        self.assertEqual(data1[0].rstrip('\n'),data2[0].rstrip('\n'));
+        self.assertEqual(data1[0],data2[0]);
         try:
-            print repr(data1[1]);
-            print repr(data2[1]);
-            self.assertAlmostEqual(float(data1[1]),float(data2[1]))
+            self.assertAlmostEqual(data1[1],data2[1]);
         except IndexError:
             pass;
 
