@@ -11,8 +11,7 @@ __all__ = ('FixtureTestCase',)
 
 
 def get_filename(filename):
-    from djfixture import tests
-    return os.path.join(os.path.dirname(tests.__file__), 'fixtures', filename)
+    return os.path.join(os.path.dirname(__file__), 'fixtures', filename)
 
 
 def search_num(self, line):
